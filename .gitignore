@@ -3,3 +3,6 @@
 
 # Secrets and credentials
 store/*
+
+# Config settings
+settings.yml

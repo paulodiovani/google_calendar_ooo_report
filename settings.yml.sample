@@ -5,14 +5,19 @@ settings:
   calendar_id:
     - primary
 
+  # keyworkds to not include in OOO search
+  exclude_keywords:
+    - gym
+    - lunch
+
   # OOO keywords to look into event names
   keywords:
-    - 'vacation'
-    - 'ooo'
-    - 'out of office'
-    - 'day off'
-    - 'pto'
-    - 'intermission'
+    - vacation
+    - ooo
+    - out of office
+    - day off
+    - pto
+    - intermission
 
   # Period of time to check for events
   # DAY, WEEK, MONTH, YEAR

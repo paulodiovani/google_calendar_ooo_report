@@ -67,8 +67,11 @@ def main():
 
       ooo_events[calendar_id] = [
         event for event in events
-        if event["eventType"] == "outOfOffice"
-        or any(keyword.lower() in event["summary"].lower() for keyword in settings()["keywords"])
+        if (
+          event["eventType"] == "outOfOffice"
+          or any(keyword.lower() in event["summary"].lower() for keyword in settings()["keywords"])
+        )
+        and not any(keyword.lower() in event["summary"].lower() for keyword in settings()["exclude_keywords"])
       ]
 
     print_report(ooo_events)
