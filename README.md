@@ -9,7 +9,7 @@ Script to generate an OOO (out of office) monthly report for a list of users.
     - Configure the OAuth consent screen
     - Authorize credentials for a desktop application
 2. Save the client secret file to `store/credentials.json`
-3. Ask for full access to the calendars to read (listed in `settings.yml`)
+3. Ask to "See all events details" on the calendars to read (listed in `settings.yml`)
 
 ## Setup and usage
 
