@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-import datetime
+from datetime import UTC, datetime
+from functools import lru_cache
 import os.path
+import yaml
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -37,35 +39,57 @@ def main():
       token.write(creds.to_json())
 
   try:
+    ooo_events = {}
     service = build("calendar", "v3", credentials=creds)
 
-    # Call the Calendar API
-    now = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
-    print("Getting the upcoming 10 events")
-    events_result = (
-        service.events()
-        .list(
-            calendarId="primary",
-            timeMin=now,
-            maxResults=10,
-            singleEvents=True,
-            orderBy="startTime",
-        )
-        .execute()
-    )
-    events = events_result.get("items", [])
+    for calendar_id in settings()["calendar_id"]:
+      # Call the Calendar API
+      now = datetime.now(UTC).isoformat()
+      # print("Getting the upcoming 10 events")
+      events_result = (
+          service.events()
+          .list(
+              # calendarId="primary",
+              calendarId=calendar_id,
+              timeMin=now,
+              maxResults=10,
+              singleEvents=True,
+              orderBy="startTime",
+          )
+          .execute()
+      )
+      events = events_result.get("items", [])
 
-    if not events:
-      print("No upcoming events found.")
-      return
+      if not events:
+        # no upcoming events for calendar
+        continue
 
+      ooo_events[calendar_id] = [
+        event for event in events
+        if event["eventType"] == "outOfOffice"
+        or any(keyword.lower() in event["summary"].lower() for keyword in settings()["keywords"])
+      ]
+
+    print_report(ooo_events)
     # Prints the start and name of the next 10 events
-    for event in events:
-      start = event["start"].get("dateTime", event["start"].get("date"))
-      print(start, event["summary"])
+    # for calendar, events in ooo_events:
+    #   for event in events:
+    #     start = event["start"].get("dateTime", event["start"].get("date"))
+    #     print(start, event["summary"])
 
   except HttpError as error:
     print(f"An error occurred: {error}")
+
+
+@lru_cache(maxsize=None)
+def settings():
+  with open("settings.yml") as file:
+    config = yaml.safe_load(file)
+  return config["settings"]
+
+
+def print_report(calendars):
+  print(calendars)
 
 
 if __name__ == "__main__":

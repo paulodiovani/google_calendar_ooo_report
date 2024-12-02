@@ -1,0 +1,20 @@
+---
+settings:
+  # List of calendar ids to read from. You must have access to these calendars.
+  # Can also be e-mail addresses.
+  calendar_id:
+    - primary
+    - luke.skywalker@example.com
+
+  # OOO keywords to look into event names
+  keywords:
+    - 'vacation'
+    - 'ooo'
+    - 'out of office'
+    - 'day off'
+    - 'pto'
+    - 'intermission'
+
+  # Period of time to check for events
+  # DAY, WEEK, MONTH, YEAR
+  period: MONTH
