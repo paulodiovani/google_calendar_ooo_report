@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
+import calendar
 import os.path
 import yaml
 
@@ -42,17 +43,17 @@ def main():
     ooo_events = {}
     service = build("calendar", "v3", credentials=creds)
 
+    start_date = get_start_date().isoformat() + "Z"
+    end_date = get_end_date().isoformat() + "Z"
+
     for calendar_id in settings()["calendar_id"]:
       # Call the Calendar API
-      now = datetime.now(UTC).isoformat()
-      # print("Getting the upcoming 10 events")
       events_result = (
           service.events()
           .list(
-              # calendarId="primary",
               calendarId=calendar_id,
-              timeMin=now,
-              maxResults=10,
+              timeMin=start_date,
+              timeMax=end_date,
               singleEvents=True,
               orderBy="startTime",
           )
@@ -71,11 +72,6 @@ def main():
       ]
 
     print_report(ooo_events)
-    # Prints the start and name of the next 10 events
-    # for calendar, events in ooo_events:
-    #   for event in events:
-    #     start = event["start"].get("dateTime", event["start"].get("date"))
-    #     print(start, event["summary"])
 
   except HttpError as error:
     print(f"An error occurred: {error}")
@@ -86,6 +82,40 @@ def settings():
   with open("settings.yml") as file:
     config = yaml.safe_load(file)
   return config["settings"]
+
+
+@lru_cache(maxsize=None)
+def get_start_date():
+  today = datetime.today()
+  match settings()["period"]:
+    case "DAY":
+      return today.replace(hour=0, minute=0, second=0, microsecond=0)
+    case "WEEK":
+      start_of_week = today - timedelta(days=today.weekday())
+      return start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    case "MONTH":
+      return today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    case "YEAR":
+      return today.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    case _:
+      raise ValueError("Invalid period specified in settings")
+
+
+def get_end_date():
+  start_date = get_start_date()
+  match settings()["period"]:
+    case "DAY":
+      return start_date.replace(hour=23, minute=59, second=59, microsecond=999)
+    case "WEEK":
+      end_of_week = start_date + timedelta(days=6)
+      return end_of_week.replace(hour=23, minute=59, second=59, microsecond=999)
+    case "MONTH":
+      last_day_of_month = calendar.monthrange(start_date.year, start_date.month)[1]
+      return start_date.replace(day=last_day_of_month, hour=23, minute=59, second=59, microsecond=999)
+    case "YEAR":
+      return start_date.replace(month=12, day=31, hour=23, minute=59, second=59, microsecond=999)
+    case _:
+      raise ValueError("Invalid period specified in settings")
 
 
 def print_report(calendars):
