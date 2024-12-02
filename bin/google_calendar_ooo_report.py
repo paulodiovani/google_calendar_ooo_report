@@ -89,7 +89,11 @@ def settings():
 
 
 def print_report(calendars):
-  print(calendars)
+  for calendar_id, events in calendars.items():
+      print(calendar_id)
+      for event in events:
+          summary = event.get("summary", "No summary")
+          print(f"  * {summary}: {event["start"]["dateTime"]} - {event["end"]["dateTime"]}")
 
 
 if __name__ == "__main__":
