@@ -21,19 +21,7 @@ def main():
     service = build("calendar", "v3", credentials=credentials())
 
     for calendar_id in settings()["calendar_id"]:
-        # Call the Calendar API
-        events_result = (
-            service.events()
-            .list(
-                calendarId=calendar_id,
-                timeMin=start_date().isoformat(),
-                timeMax=end_date().isoformat(),
-                singleEvents=True,
-                orderBy="startTime",
-            )
-            .execute()
-        )
-        events = events_result.get("items", [])
+        events = fetch_events(service, calendar_id)
 
         if not events:
             # no upcoming events for calendar
@@ -89,6 +77,31 @@ def credentials():
             token.write(creds.to_json())
 
     return creds
+
+
+def fetch_events(service, calendar_id, page_token=None):
+    # Call the Calendar API
+    events_result = (
+        service.events()
+        .list(
+            calendarId=calendar_id,
+            timeMin=start_date().isoformat(),
+            timeMax=end_date().isoformat(),
+            singleEvents=True,
+            orderBy="startTime",
+            pageToken=page_token,
+        )
+        .execute()
+    )
+
+    # loop through response pages
+    next_page = events_result.get("nextPageToken", None)
+    if next_page:
+        return events_result.get("items", []) + fetch_events(
+            service, calendar_id, next_page
+        )
+
+    return events_result.get("items", [])
 
 
 @lru_cache(maxsize=None)
