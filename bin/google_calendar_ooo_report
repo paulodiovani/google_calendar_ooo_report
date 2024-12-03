@@ -31,14 +31,14 @@ def main():
             event
             for event in events
             if (
-                event["eventType"] == "outOfOffice"
+                event.get("eventType", "") == "outOfOffice"
                 or any(
-                    keyword.lower() in event["summary"].lower()
+                    keyword.lower() in event.get("summary", "").lower()
                     for keyword in settings()["keywords"]
                 )
             )
             and not any(
-                keyword.lower() in event["summary"].lower()
+                keyword.lower() in event.get("summary", "").lower()
                 for keyword in settings()["exclude_keywords"]
             )
         ]
