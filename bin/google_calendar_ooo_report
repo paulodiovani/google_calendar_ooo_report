@@ -153,14 +153,14 @@ def print_report(calendars):
             summary = event.get("summary", "No summary")
             start = datetime.fromisoformat(event["start"]["dateTime"])
             end = datetime.fromisoformat(event["end"]["dateTime"])
-
-            if start.date() == end.date():
-                print(f"               {start.date()} - {summary}: {end - start}")
-            elif end > end_date():
+            if end > end_date():
                 end = end_date() + timedelta(seconds=1)
-                print(f"  {start.date()} - {end.date()} - {summary}: {end - start}")
+            last = end - timedelta(days=1) # last day of multiple days events
+
+            if start.date() == end.date() or start.date() == last.date():
+                print(f"  {start.date()}              - {summary} ({end - start})")
             else:
-                print(f"  {start.date()} - {end.date()} - {summary}: {end - start}")
+                print(f"  {start.date()} - {last.date()} - {summary} ({end - start})")
 
 
 if __name__ == "__main__":
