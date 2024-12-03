@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from functools import lru_cache
 import calendar
 import os.path
@@ -17,31 +17,9 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 
 def main():
-  """Shows basic usage of the Google Calendar API.
-  Prints the start and name of the next 10 events on the user's calendar.
-  """
-  creds = None
-  # The file token.json stores the user's access and refresh tokens, and is
-  # created automatically when the authorization flow completes for the first
-  # time.
-  if os.path.exists("store/token.json"):
-    creds = Credentials.from_authorized_user_file("store/token.json", SCOPES)
-  # If there are no (valid) credentials available, let the user log in.
-  if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-      creds.refresh(Request())
-    else:
-      flow = InstalledAppFlow.from_client_secrets_file(
-          "store/credentials.json", SCOPES
-      )
-      creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open("store/token.json", "w") as token:
-      token.write(creds.to_json())
-
   try:
     ooo_events = {}
-    service = build("calendar", "v3", credentials=creds)
+    service = build("calendar", "v3", credentials=credentials())
 
     start_date = get_start_date().isoformat() + "Z"
     end_date = get_end_date().isoformat() + "Z"
@@ -85,6 +63,32 @@ def settings():
   with open("settings.yml") as file:
     config = yaml.safe_load(file)
   return config["settings"]
+
+
+def credentials():
+  """
+  Get Google Credentials
+  """
+  creds = None
+  # The file token.json stores the user's access and refresh tokens, and is
+  # created automatically when the authorization flow completes for the first
+  # time.
+  if os.path.exists("store/token.json"):
+    creds = Credentials.from_authorized_user_file("store/token.json", SCOPES)
+  # If there are no (valid) credentials available, let the user log in.
+  if not creds or not creds.valid:
+    if creds and creds.expired and creds.refresh_token:
+      creds.refresh(Request())
+    else:
+      flow = InstalledAppFlow.from_client_secrets_file(
+          "store/credentials.json", SCOPES
+      )
+      creds = flow.run_local_server(port=0)
+    # Save the credentials for the next run
+    with open("store/token.json", "w") as token:
+      token.write(creds.to_json())
+
+  return creds
 
 
 @lru_cache(maxsize=None)
