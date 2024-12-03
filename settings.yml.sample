@@ -22,3 +22,7 @@ settings:
   # Period of time to check for events
   # DAY, WEEK, MONTH, YEAR
   period: MONTH
+
+  # Timezone used for events
+  # e.g. America/Sao_Paulo, America/Los_Angeles, ...
+  timezone: UTC
