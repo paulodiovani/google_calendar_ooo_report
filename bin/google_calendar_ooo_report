@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 import calendar
 import os.path
@@ -19,17 +19,14 @@ def main():
     ooo_events = {}
     service = build("calendar", "v3", credentials=credentials())
 
-    start_date = get_start_date().isoformat() + "Z"
-    end_date = get_end_date().isoformat() + "Z"
-
     for calendar_id in settings()["calendar_id"]:
         # Call the Calendar API
         events_result = (
             service.events()
             .list(
                 calendarId=calendar_id,
-                timeMin=start_date,
-                timeMax=end_date,
+                timeMin=start_date().isoformat(),
+                timeMax=end_date().isoformat(),
                 singleEvents=True,
                 orderBy="startTime",
             )
@@ -94,13 +91,14 @@ def credentials():
 
 
 @lru_cache(maxsize=None)
-def get_start_date():
-    today = datetime.today()
+def start_date():
+    today = datetime.now(UTC)
     match settings()["period"]:
         case "DAY":
             return today.replace(hour=0, minute=0, second=0, microsecond=0)
         case "WEEK":
-            start_of_week = today - timedelta(days=today.weekday())
+            # week starting on Sunday
+            start_of_week = today - timedelta(days=(today.weekday() + 1) % 7)
             return start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
         case "MONTH":
             return today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -112,23 +110,23 @@ def get_start_date():
             raise ValueError("Invalid period specified in settings")
 
 
-def get_end_date():
-    start_date = get_start_date()
+@lru_cache(maxsize=None)
+def end_date():
     match settings()["period"]:
         case "DAY":
-            return start_date.replace(hour=23, minute=59, second=59, microsecond=999)
+            return start_date().replace(hour=23, minute=59, second=59, microsecond=999)
         case "WEEK":
-            end_of_week = start_date + timedelta(days=6)
+            end_of_week = start_date() + timedelta(days=6)
             return end_of_week.replace(hour=23, minute=59, second=59, microsecond=999)
         case "MONTH":
-            last_day_of_month = calendar.monthrange(start_date.year, start_date.month)[
-                1
-            ]
-            return start_date.replace(
+            [_, last_day_of_month] = calendar.monthrange(
+                start_date().year, start_date().month
+            )
+            return start_date().replace(
                 day=last_day_of_month, hour=23, minute=59, second=59, microsecond=999
             )
         case "YEAR":
-            return start_date.replace(
+            return start_date().replace(
                 month=12, day=31, hour=23, minute=59, second=59, microsecond=999
             )
         case _:
