@@ -25,5 +25,5 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # Run the script
-./bin/google_calendar_ooo_report.py
+./bin/google_calendar_ooo_report
 ```
