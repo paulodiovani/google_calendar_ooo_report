@@ -4,10 +4,11 @@ Script to generate an OOO (out of office) monthly report for a list of users.
 
 ## Preliminary setup
 
-1. Follow Instructions from the [Python Quickstart page](https://developers.google.com/calendar/api/quickstart/python)
+1. Follow the **Set up your environment** Instructions from the [Python Quickstart page](https://developers.google.com/calendar/api/quickstart/python)
     - Enable the API (select or create a project)
     - Configure the OAuth consent screen
     - Authorize credentials for a desktop application
+    You can ignore the remaining instructions from the page.
 2. Save the client secret file to `store/credentials.json`
 3. Ask to "See all events details" on the calendars to read (listed in `settings.yml`)
 
