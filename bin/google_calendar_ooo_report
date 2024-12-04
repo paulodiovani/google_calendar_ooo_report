@@ -24,6 +24,10 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 @cached(cache={}, key=lambda **_: hashkey(None))
 def settings(**overrides):
+    """
+    Read settings from settings.yml and allow init with overrides.
+    Further calls are cached and will ignore the overrides argument.
+    """
     with open(SETTINGS_FILE) as file:
         config = yaml.safe_load(file).get("settings", {})
 
@@ -36,7 +40,8 @@ def settings(**overrides):
 
 def credentials():
     """
-    Get Google Credentials
+    Get Google Credentials from the credentials.json file
+    and stores a token.json for next calls.
     """
     creds = None
 
@@ -60,7 +65,10 @@ def credentials():
 
 
 def fetch_events(service, calendar_id, page_token=None):
-    # Call the Calendar API
+    """
+    Call Google Calendar API with calendar_id.
+    Recursively calls itself if there is paginated results.
+    """
     events_result = (
         service.events()
         .list(
@@ -86,6 +94,10 @@ def fetch_events(service, calendar_id, page_token=None):
 
 @lru_cache(maxsize=None)
 def start_date():
+    """
+    Start date to look for events based on the period:
+    day, week, month or year.
+    """
     config = settings()
 
     tz_info = timezone(config["timezone"])
@@ -114,6 +126,10 @@ def start_date():
 
 @lru_cache(maxsize=None)
 def end_date():
+    """
+    End date to look for events based on the period:
+    day, week, month or year.
+    """
     config = settings()
 
     match config["period"]:
@@ -136,6 +152,10 @@ def end_date():
 
 
 def print_report(calendars):
+    """
+    Print the report.
+    Currently on text format is supported.
+    """
     for calendar_id, events in calendars.items():
         print(calendar_id)
         for event in events:
