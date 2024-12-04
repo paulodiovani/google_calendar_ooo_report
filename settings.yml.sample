@@ -5,7 +5,7 @@ settings:
   calendar_id:
     - primary
 
-  # keyworkds to not include in OOO search
+  # keywords to not include in OOO search
   exclude_keywords:
     - gym
     - lunch

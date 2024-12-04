@@ -27,3 +27,20 @@ pip install -r requirements.txt
 # Run the script
 ./bin/google_calendar_ooo_report
 ```
+
+### Help
+
+```
+Usage: google_calendar_ooo_report [OPTIONS]
+
+  Fetch user calendars and print a report of OOO (Out of Office) events.
+  Configuration is defined in settings.yml file.
+
+  Some options can be overridden with arguments.
+
+Options:
+  -d, --date TEXT    Date to report (default to today).
+  -p, --period TEXT  Period to report: DAY, WEEK, MONTH, YEAR. Start at
+                     beginning of.
+  --help             Show this message and exit.
+```

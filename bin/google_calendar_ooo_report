@@ -1,56 +1,37 @@
 #!/usr/bin/env python
 
-from datetime import datetime, timedelta
-from functools import lru_cache
-from pytz import timezone
 import calendar
 import os.path
-import yaml
+from datetime import datetime, timedelta
+from functools import lru_cache
 
+import click
+import yaml
+from cachetools import cached
+from cachetools.keys import hashkey
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from pytz import timezone
 
+CREDENTIALS_FILE = "store/credentials.json"
+SETTINGS_FILE = "settings.yml"
+TOKEN_FILE = "store/token.json"
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 
-def main():
-    ooo_events = {}
-    service = build("calendar", "v3", credentials=credentials())
+@cached(cache={}, key=lambda **_: hashkey(None))
+def settings(**overrides):
+    with open(SETTINGS_FILE) as file:
+        config = yaml.safe_load(file).get("settings", {})
 
-    for calendar_id in settings()["calendar_id"]:
-        events = fetch_events(service, calendar_id)
+    for k, v in overrides.items():
+        if v is not None:
+            config[k] = v
 
-        if not events:
-            # no upcoming events for calendar
-            continue
-
-        ooo_events[calendar_id] = [
-            event
-            for event in events
-            if (
-                event.get("eventType", "") == "outOfOffice"
-                or any(
-                    keyword.lower() in event.get("summary", "").lower()
-                    for keyword in settings()["keywords"]
-                )
-            )
-            and not any(
-                keyword.lower() in event.get("summary", "").lower()
-                for keyword in settings()["exclude_keywords"]
-            )
-        ]
-
-    print_report(ooo_events)
-
-
-@lru_cache(maxsize=None)
-def settings():
-    with open("settings.yml") as file:
-        config = yaml.safe_load(file)
-    return config["settings"]
+    return config
 
 
 def credentials():
@@ -58,22 +39,21 @@ def credentials():
     Get Google Credentials
     """
     creds = None
+
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists("store/token.json"):
-        creds = Credentials.from_authorized_user_file("store/token.json", SCOPES)
+    if os.path.exists(TOKEN_FILE):
+        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "store/credentials.json", SCOPES
-            )
+            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open("store/token.json", "w") as token:
+        with open(CREDENTIALS_FILE, "w") as token:
             token.write(creds.to_json())
 
     return creds
@@ -106,9 +86,16 @@ def fetch_events(service, calendar_id, page_token=None):
 
 @lru_cache(maxsize=None)
 def start_date():
-    tz_info = timezone(settings()["timezone"])
-    today = datetime.now(tz_info)
-    match settings()["period"]:
+    config = settings()
+
+    tz_info = timezone(config["timezone"])
+    today = (
+        datetime.fromisoformat(config["date"]).replace(tzinfo=tz_info)
+        if config.get("date", None)
+        else datetime.now(tz_info)
+    )
+
+    match config["period"]:
         case "DAY":
             return today.replace(hour=0, minute=0, second=0, microsecond=0)
         case "WEEK":
@@ -127,7 +114,9 @@ def start_date():
 
 @lru_cache(maxsize=None)
 def end_date():
-    match settings()["period"]:
+    config = settings()
+
+    match config["period"]:
         case "DAY":
             return start_date().replace(hour=23, minute=59, second=59)
         case "WEEK":
@@ -155,12 +144,58 @@ def print_report(calendars):
             end = datetime.fromisoformat(event["end"]["dateTime"])
             if end > end_date():
                 end = end_date() + timedelta(seconds=1)
-            last = end - timedelta(days=1) # last day of multiple days events
+            last = end - timedelta(days=1)  # last day of multiple days events
 
             if start.date() == end.date() or start.date() == last.date():
                 print(f"  {start.date()}              - {summary} ({end - start})")
             else:
                 print(f"  {start.date()} - {last.date()} - {summary} ({end - start})")
+
+
+@click.command()
+@click.option("-d", "--date", help="Date to report (default to today).")
+@click.option(
+    "-p",
+    "--period",
+    help="Period to report: DAY, WEEK, MONTH, YEAR. Start at beginning of.",
+)
+def main(date=None, period=None):
+    """
+    Fetch user calendars and print a report of OOO (Out of Office) events.
+    Configuration is defined in settings.yml file.
+
+    Some options can be overridden with arguments.
+    """
+    ooo_events = {}
+    service = build("calendar", "v3", credentials=credentials())
+
+    # initialize config with overrides, if any
+    config = settings(**{"date": date, "period": period})
+
+    for calendar_id in config["calendar_id"]:
+        events = fetch_events(service, calendar_id)
+
+        if not events:
+            # no upcoming events for calendar
+            continue
+
+        ooo_events[calendar_id] = [
+            event
+            for event in events
+            if (
+                event.get("eventType", "") == "outOfOffice"
+                or any(
+                    keyword.lower() in event.get("summary", "").lower()
+                    for keyword in config["keywords"]
+                )
+            )
+            and not any(
+                keyword.lower() in event.get("summary", "").lower()
+                for keyword in config["exclude_keywords"]
+            )
+        ]
+
+    print_report(ooo_events)
 
 
 if __name__ == "__main__":
