@@ -12,6 +12,9 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+CREDENTIALS_FILE = "store/credentials.json"
+SETTINGS_FILE = "settings.yml"
+TOKEN_FILE = "store/token.json"
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
@@ -48,7 +51,7 @@ def main():
 
 @lru_cache(maxsize=None)
 def settings():
-    with open("settings.yml") as file:
+    with open(SETTINGS_FILE) as file:
         config = yaml.safe_load(file)
     return config["settings"]
 
@@ -58,22 +61,21 @@ def credentials():
     Get Google Credentials
     """
     creds = None
+
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists("store/token.json"):
-        creds = Credentials.from_authorized_user_file("store/token.json", SCOPES)
+    if os.path.exists(TOKEN_FILE):
+        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "store/credentials.json", SCOPES
-            )
+            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open("store/token.json", "w") as token:
+        with open(CREDENTIALS_FILE, "w") as token:
             token.write(creds.to_json())
 
     return creds
@@ -155,7 +157,7 @@ def print_report(calendars):
             end = datetime.fromisoformat(event["end"]["dateTime"])
             if end > end_date():
                 end = end_date() + timedelta(seconds=1)
-            last = end - timedelta(days=1) # last day of multiple days events
+            last = end - timedelta(days=1)  # last day of multiple days events
 
             if start.date() == end.date() or start.date() == last.date():
                 print(f"  {start.date()}              - {summary} ({end - start})")
