@@ -153,7 +153,7 @@ def print_report(calendars):
 
 
 @click.command()
-@click.option("-d", "--date", help="Date to report.")
+@click.option("-d", "--date", help="Date to report (default to today).")
 @click.option(
     "-p",
     "--period",
