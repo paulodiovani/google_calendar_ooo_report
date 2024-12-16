@@ -181,20 +181,31 @@ def format_events(calendars):
     return ooo_events
 
 
+def format_as_text(events: list[dict]):
+    """
+    Return text version of the report for printing
+    """
+    lines = []
+
+    previous_id = ""
+    for event in events:
+        if event["calendar_id"] != previous_id:
+            lines.append(event["calendar_id"])
+            previous_id = event["calendar_id"]
+
+        lines.append(
+            f"  {event["start_date"].date()} - {event["end_date"].date()} - {event["summary"]} ({event["duration"]})"
+        )
+
+    return "\n".join(lines)
+
+
 def print_report(events: list[dict]):
     """
     Print the report.
     Currently on text format is supported.
     """
-    previous_id = ""
-    for event in events:
-        if event["calendar_id"] != previous_id:
-            print(event["calendar_id"])
-            previous_id = event["calendar_id"]
-
-        print(
-            f"  {event["start_date"].date()} - {event["end_date"].date()} - {event["summary"]} ({event["duration"]})"
-        )
+    print(format_as_text(events))
 
 
 @click.command()
