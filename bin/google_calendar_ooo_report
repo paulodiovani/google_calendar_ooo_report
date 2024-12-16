@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 import calendar
+import csv
+import io
+import json
 import os.path
 from datetime import datetime, timedelta
 from functools import lru_cache
@@ -151,15 +154,15 @@ def end_date():
             raise ValueError("Invalid period specified in settings")
 
 
-def print_report(calendars):
+def format_events(calendars: dict[str, list[dict]]):
     """
-    Print the report.
-    Currently on text format is supported.
+    Format the events in user calendars for printing.
     """
+    ooo_events = {}
     for calendar_id, events in calendars.items():
-        print(calendar_id)
+        ooo_events[calendar_id] = []
+
         for event in events:
-            summary = event.get("summary", "No summary")
             start = datetime.fromisoformat(event["start"]["dateTime"])
             if start < start_date():
                 start = start_date()
@@ -170,10 +173,66 @@ def print_report(calendars):
 
             last = end - timedelta(days=1)  # last day of multiple days events
 
-            if start.date() == end.date() or start.date() == last.date():
-                print(f"  {start.date()}              - {summary} ({end - start})")
-            else:
-                print(f"  {start.date()} - {last.date()} - {summary} ({end - start})")
+            ooo_events[calendar_id].append(
+                {
+                    "start_date": start,
+                    "end_date": last,  # printable end date
+                    "duration": end - start,
+                    "summary": event.get("summary", "No summary"),
+                }
+            )
+
+    return ooo_events
+
+
+def format_as_text(calendars: dict[str, list[dict]]):
+    """
+    Return text version of the report for printing
+    """
+    lines = []
+
+    for calendar_id, events in calendars.items():
+        lines.append(calendar_id)
+        lines.extend(
+            f"  {event['start_date'].date()} - {event['end_date'].date()} - {event['summary']} ({event['duration']})"
+            for event in events
+        )
+
+    return "\n".join(lines)
+
+
+def format_as_csv(calendars: dict[str, list[dict]]):
+    """
+    Return csv version of the report for printing
+    """
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(["calendar_id", "start_date", "end_date", "duration", "summary"])
+
+    rows = (
+        [calendar_id, *event.values()]
+        for calendar_id, events in calendars.items()
+        for event in events
+    )
+    writer.writerows(rows)
+
+    csv_string = output.getvalue()
+    output.close
+    return csv_string
+
+
+def print_report(calendars: dict[str, list[dict]], format: str = "text"):
+    """
+    Print the report.
+    Currently on text format is supported.
+    """
+    match format:
+        case "csv":
+            print(format_as_csv(calendars))
+        case "json":
+            print(json.dumps(calendars, indent=2, sort_keys=True, default=str))
+        case "text" | _:
+            print(format_as_text(calendars))
 
 
 @click.command()
@@ -183,7 +242,14 @@ def print_report(calendars):
     "--period",
     help="Period to report: DAY, WEEK, MONTH, YEAR. Start at beginning of.",
 )
-def main(date=None, period=None):
+@click.option(
+    "-f",
+    "--format",
+    type=click.Choice(["csv", "json", "text"]),
+    default="text",
+    help="Output format (default to text).",
+)
+def main(date=None, period=None, format="text"):
     """
     Fetch user calendars and print a report of OOO (Out of Office) events.
     Configuration is defined in settings.yml file.
@@ -219,7 +285,7 @@ def main(date=None, period=None):
             )
         ]
 
-    print_report(ooo_events)
+    print_report(format_events(ooo_events), format)
 
 
 if __name__ == "__main__":
