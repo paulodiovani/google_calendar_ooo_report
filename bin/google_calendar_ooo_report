@@ -151,15 +151,13 @@ def end_date():
             raise ValueError("Invalid period specified in settings")
 
 
-def print_report(calendars):
+def format_events(calendars):
     """
-    Print the report.
-    Currently on text format is supported.
+    Format the events in user calendars for printing.
     """
+    ooo_events = []
     for calendar_id, events in calendars.items():
-        print(calendar_id)
         for event in events:
-            summary = event.get("summary", "No summary")
             start = datetime.fromisoformat(event["start"]["dateTime"])
             if start < start_date():
                 start = start_date()
@@ -170,10 +168,33 @@ def print_report(calendars):
 
             last = end - timedelta(days=1)  # last day of multiple days events
 
-            if start.date() == end.date() or start.date() == last.date():
-                print(f"  {start.date()}              - {summary} ({end - start})")
-            else:
-                print(f"  {start.date()} - {last.date()} - {summary} ({end - start})")
+            ooo_events.append(
+                {
+                    "calendar_id": calendar_id,
+                    "start_date": start,
+                    "end_date": last,  # printable end date
+                    "duration": end - start,
+                    "summary": event.get("summary", "No summary"),
+                }
+            )
+
+    return ooo_events
+
+
+def print_report(events: list[dict]):
+    """
+    Print the report.
+    Currently on text format is supported.
+    """
+    previous_id = ""
+    for event in events:
+        if event["calendar_id"] != previous_id:
+            print(event["calendar_id"])
+            previous_id = event["calendar_id"]
+
+        print(
+            f"  {event["start_date"].date()} - {event["end_date"].date()} - {event["summary"]} ({event["duration"]})"
+        )
 
 
 @click.command()
@@ -219,7 +240,7 @@ def main(date=None, period=None):
             )
         ]
 
-    print_report(ooo_events)
+    print_report(format_events(ooo_events))
 
 
 if __name__ == "__main__":
