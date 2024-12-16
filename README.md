@@ -41,10 +41,12 @@ Usage: google_calendar_ooo_report [OPTIONS]
   Some options can be overridden with arguments.
 
 Options:
-  -d, --date TEXT    Date to report (default to today).
-  -p, --period TEXT  Period to report: DAY, WEEK, MONTH, YEAR. Start at
-                     beginning of.
-  --help             Show this message and exit.
+  -d, --date TEXT               Date to report (default to today).
+  -p, --period TEXT             Period to report: DAY, WEEK, MONTH, YEAR.
+                                Start at beginning of.
+  -f, --format [csv|json|text]  Output format (default to text).
+  -w, --weekend / --no-weekend  Include weekends in report (default to False)
+  --help                        Show this message and exit.
 ```
 
 ### Sample output
