@@ -158,7 +158,7 @@ def count_weekends(start: datetime, end: datetime):
     """
     Count weekends in period
     """
-    weekend_days = sum(1 for d in range((end - start).days + 1) if (start + timedelta(days=d)).weekday() >= 5)
+    weekend_days = sum(1 for d in range((end - start).days) if (start + timedelta(days=d)).weekday() >= 5)
     return timedelta(days=weekend_days)
 
 
