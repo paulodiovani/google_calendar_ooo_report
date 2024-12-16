@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import calendar
+import csv
+import io
 import json
 import os.path
 from datetime import datetime, timedelta
@@ -173,7 +175,6 @@ def format_events(calendars: dict[str, list[dict]]):
 
             ooo_events[calendar_id].append(
                 {
-                    "calendar_id": calendar_id,
                     "start_date": start,
                     "end_date": last,  # printable end date
                     "duration": end - start,
@@ -192,25 +193,46 @@ def format_as_text(calendars: dict[str, list[dict]]):
 
     for calendar_id, events in calendars.items():
         lines.append(calendar_id)
-
-        for event in events:
-            lines.append(
-                f"  {event["start_date"].date()} - {event["end_date"].date()} - {event["summary"]} ({event["duration"]})"
-            )
+        lines.extend(
+            f"  {event['start_date'].date()} - {event['end_date'].date()} - {event['summary']} ({event['duration']})"
+            for event in events
+        )
 
     return "\n".join(lines)
 
 
-def print_report(events: dict[str, list[dict]], format: str = "text"):
+def format_as_csv(calendars: dict[str, list[dict]]):
+    """
+    Return csv version of the report for printing
+    """
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(["calendar_id", "start_date", "end_date", "duration", "summary"])
+
+    rows = (
+        [calendar_id, *event.values()]
+        for calendar_id, events in calendars.items()
+        for event in events
+    )
+    writer.writerows(rows)
+
+    csv_string = output.getvalue()
+    output.close
+    return csv_string
+
+
+def print_report(calendars: dict[str, list[dict]], format: str = "text"):
     """
     Print the report.
     Currently on text format is supported.
     """
     match format:
+        case "csv":
+            print(format_as_csv(calendars))
         case "json":
-            print(json.dumps(events, indent=2, sort_keys=True, default=str))
+            print(json.dumps(calendars, indent=2, sort_keys=True, default=str))
         case "text" | _:
-            print(format_as_text(events))
+            print(format_as_text(calendars))
 
 
 @click.command()
@@ -223,7 +245,7 @@ def print_report(events: dict[str, list[dict]], format: str = "text"):
 @click.option(
     "-f",
     "--format",
-    type=click.Choice(["json", "text"]),
+    type=click.Choice(["csv", "json", "text"]),
     default="text",
     help="Output format (default to text).",
 )
