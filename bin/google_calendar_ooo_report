@@ -158,7 +158,11 @@ def count_weekends(start: datetime, end: datetime):
     """
     Count weekends in period
     """
-    weekend_days = sum(1 for d in range((end - start).days) if (start + timedelta(days=d)).weekday() >= 5)
+    weekend_days = sum(
+        1
+        for d in range((end - start).days)
+        if (start + timedelta(days=d)).weekday() >= 5
+    )
     return timedelta(days=weekend_days)
 
 
@@ -213,16 +217,43 @@ def format_as_text(calendars: dict[str, list[dict]]):
     return "\n".join(lines)
 
 
+def split_duration(event: dict):
+    """
+    Splits the duration into days and hours fields
+    """
+    duration: timedelta = event["duration"]
+    dindex = list(event.keys()).index("duration")
+    items = list(event.items())
+
+    return dict(
+        [
+            *(items[0:dindex]),
+            ("duration_days", duration.days),
+            ("duration_hours", duration.seconds / 3600),
+            items[dindex + 1],
+        ]
+    )
+
+
 def format_as_csv(calendars: dict[str, list[dict]]):
     """
     Return csv version of the report for printing
     """
     output = io.StringIO()
     writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
-    writer.writerow(["calendar_id", "start_date", "end_date", "duration", "summary"])
+    writer.writerow(
+        [
+            "calendar_id",
+            "start_date",
+            "end_date",
+            "duration_days",
+            "duration_hours",
+            "summary",
+        ]
+    )
 
     rows = (
-        [calendar_id, *event.values()]
+        [calendar_id, *split_duration(event).values()]
         for calendar_id, events in calendars.items()
         for event in events
     )
