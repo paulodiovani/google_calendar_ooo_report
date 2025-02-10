@@ -187,7 +187,9 @@ def format_events(calendars: dict[str, list[dict]], weekend: bool = False):
             if not weekend:
                 duration -= count_weekends(start, end)
 
-            last = end - timedelta(days=1)  # last day of multiple days events
+            last = end
+            if duration.days > 0:
+                last = end - timedelta(days=1)  # last day of multiple days events
 
             ooo_events[calendar_id].append(
                 {
