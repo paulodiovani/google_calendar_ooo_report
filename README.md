@@ -56,12 +56,12 @@ $ ./bin/google_calendar_ooo_report --date 2024-12-01 --period MONTH
 harry.potter@example.com
   2024-12-23 - 2024-12-24 - Harry Potter OOO (2 days, 0:00:00)
 frodo.baggins@example.com
-  2024-12-23 - 2024-12-31 - Codeminer's Collective Vacation (9 days, 0:00:00)
+  2024-12-23 - 2024-12-31 - Collective Vacation (9 days, 0:00:00)
 luke.skywalker@example.com
   2024-12-23 - 2024-12-31 - Vacations! (9 days, 0:00:00)
 sherlock.holmes@example.com
   2024-12-20              - Out of office: Medical Appointment (1:00:00)
-  2024-12-23 - 2024-12-31 - Out of office: Codeminer42 collective vacation (9 days, 0:00:00)
+  2024-12-23 - 2024-12-31 - Out of office: collective vacation (9 days, 0:00:00)
 hermione.granger@example.com
   2024-12-23 - 2024-12-31 - Out of Office (9 days, 0:00:00)
 ```
