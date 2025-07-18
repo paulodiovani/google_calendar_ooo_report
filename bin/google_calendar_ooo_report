@@ -230,7 +230,7 @@ def format_as_text(calendars: dict[str, list[dict]]):
     lines = []
 
     for calendar_id, events in calendars.items():
-        lines.append(calendar_id)
+        lines.append(get_calendar_name(calendar_id))
         lines.extend(
             f"  {event['start_date'].date()} - {event['end_date'].date()} - {event['summary']} ({event['duration']})"
             for event in events
@@ -275,7 +275,7 @@ def format_as_csv(calendars: dict[str, list[dict]]):
     )
 
     rows = (
-        [calendar_id, *split_duration(event).values()]
+        [get_calendar_name(calendar_id), *split_duration(event).values()]
         for calendar_id, events in calendars.items()
         for event in events
     )
@@ -298,6 +298,25 @@ def print_report(calendars: dict[str, list[dict]], format: str = "text"):
             print(json.dumps(calendars, indent=2, sort_keys=True, default=str))
         case "text" | _:
             print(format_as_text(calendars))
+
+
+def get_calendar_id(calendar_id: str | dict[str, str]):
+    return calendar_id if isinstance(calendar_id, str) else list(calendar_id.keys())[0]
+
+
+def get_calendar_name(calendar_id: str) -> str:
+    config = settings()
+
+    for id in config["calendar_id"]:
+        if isinstance(id, str):
+            if id == calendar_id:
+                return id
+        else:
+            id, name = list(id.items())[0]
+            if id == calendar_id:
+                return name
+
+    return calendar_id
 
 
 @click.command()
@@ -334,6 +353,7 @@ def main(date=None, period=None, format="text", weekend=False):
     config = settings(**{"date": date, "period": period})
 
     for calendar_id in config["calendar_id"]:
+        calendar_id = get_calendar_id(calendar_id)
         events = fetch_events(service, calendar_id)
 
         if not events:

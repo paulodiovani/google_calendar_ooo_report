@@ -2,8 +2,13 @@
 settings:
   # List of calendar ids to read from. You must have access to these calendars.
   # Can also be e-mail addresses.
+  #
+  # Format:
+  # - calendar_id
+  # - calendar_id: Calendar Name
   calendar_id:
-    - primary
+    # - primary
+    - primary: My Calendar
 
   # keywords to not include in OOO search
   exclude_keywords:
