@@ -103,11 +103,11 @@ def start_date():
     """
     config = settings()
 
-    tz_info = timezone(config["timezone"])
+    tzinfo = tz_info()
     today = (
-        tz_info.localize(datetime.fromisoformat(config["date"]))
+        tzinfo.localize(datetime.fromisoformat(config["date"]))
         if config.get("date", None)
-        else datetime.now(tz_info)
+        else datetime.now(tzinfo)
     )
 
     match config["period"]:
@@ -154,6 +154,18 @@ def end_date():
             raise ValueError("Invalid period specified in settings")
 
 
+@lru_cache(maxsize=None)
+def tz_info():
+    """
+    Retrieves the timezone configuration from settings.
+
+    Returns:
+        pytz.timezone: A timezone object based on the configured timezone.
+    """
+    config = settings()
+    return timezone(config["timezone"])
+
+
 def count_weekends(start: datetime, end: datetime):
     """
     Count weekends in period
@@ -175,11 +187,19 @@ def format_events(calendars: dict[str, list[dict]], weekend: bool = False):
         ooo_events[calendar_id] = []
 
         for event in events:
-            start = datetime.fromisoformat(event["start"]["dateTime"])
+            start = datetime.fromisoformat(
+                event["start"]["dateTime"]
+                if "dateTime" in event["start"]
+                else event["start"]["date"]
+            ).replace(tzinfo=tz_info())
             if start < start_date():
                 start = start_date()
 
-            end = datetime.fromisoformat(event["end"]["dateTime"])
+            end = datetime.fromisoformat(
+                event["end"]["dateTime"]
+                if "dateTime" in event["end"]
+                else event["end"]["date"]
+            ).replace(tzinfo=tz_info())
             if end > end_date():
                 end = end_date() + timedelta(seconds=1)
 
