@@ -183,23 +183,27 @@ def format_events(calendars: dict[str, list[dict]], weekend: bool = False):
     Format the events in user calendars for printing.
     """
     ooo_events = {}
+    tzinfo = tz_info()
+
     for calendar_id, events in calendars.items():
         ooo_events[calendar_id] = []
 
         for event in events:
-            start = datetime.fromisoformat(
-                event["start"]["dateTime"]
+            start = (
+                datetime.fromisoformat(event["start"]["dateTime"]).astimezone(tzinfo)
                 if "dateTime" in event["start"]
-                else event["start"]["date"]
-            ).replace(tzinfo=tz_info())
+                else datetime.fromisoformat(event["start"]["date"]).replace(
+                    tzinfo=tzinfo
+                )
+            )
             if start < start_date():
                 start = start_date()
 
-            end = datetime.fromisoformat(
-                event["end"]["dateTime"]
+            end = (
+                datetime.fromisoformat(event["end"]["dateTime"]).astimezone(tzinfo)
                 if "dateTime" in event["end"]
-                else event["end"]["date"]
-            ).replace(tzinfo=tz_info())
+                else datetime.fromisoformat(event["end"]["date"]).replace(tzinfo=tzinfo)
+            )
             if end > end_date():
                 end = end_date() + timedelta(seconds=1)
 
